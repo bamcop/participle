@@ -1,5 +1,9 @@
 package lexer
 
+import (
+	"github.com/cockroachdb/errors"
+)
+
 // PeekingLexer supports arbitrary lookahead as well as cloning.
 type (
 	PeekingLexer struct {
