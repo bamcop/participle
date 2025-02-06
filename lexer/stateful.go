@@ -2,9 +2,7 @@ package lexer
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/cockroachdb/errors"
 	"io"
 	"regexp"
 	"sort"
@@ -12,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+
+	"github.com/cockroachdb/errors"
 )
 
 var (
@@ -20,18 +20,18 @@ var (
 
 // A Rule matching input and possibly changing state.
 type Rule struct {
-	Name	string	`json:"name"`
-	Pattern	string	`json:"pattern"`
-	Action	Action	`json:"action"`
+	Name    string `json:"name"`
+	Pattern string `json:"pattern"`
+	Action  Action `json:"action"`
 }
 
 var _ json.Marshaler = &Rule{}
 var _ json.Unmarshaler = &Rule{}
 
 type jsonRule struct {
-	Name	string		`json:"name,omitempty"`
-	Pattern	string		`json:"pattern,omitempty"`
-	Action	json.RawMessage	`json:"action,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Pattern string          `json:"pattern,omitempty"`
+	Action  json.RawMessage `json:"action,omitempty"`
 }
 
 func (r *Rule) UnmarshalJSON(data []byte) error {
@@ -82,8 +82,8 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 
 func (r *Rule) MarshalJSON() ([]byte, error) {
 	jrule := jsonRule{
-		Name:		r.Name,
-		Pattern:	r.Pattern,
+		Name:    r.Name,
+		Pattern: r.Pattern,
 	}
 	if r.Action != nil {
 		actionData, err := json.Marshal(r.Action)
@@ -121,8 +121,8 @@ type Rules map[string][]Rule
 // compiledRule is a Rule with its pattern compiled.
 type compiledRule struct {
 	Rule
-	ignore	bool
-	RE	*regexp.Regexp
+	ignore bool
+	RE     *regexp.Regexp
 }
 
 // compiledRules grouped by name.
@@ -167,7 +167,7 @@ var ReturnRule = Rule{"returnToParent", "", nil}
 // Return to the parent state.
 //
 // Useful as the last rule in a sub-state.
-func Return() Rule	{ return ReturnRule }
+func Return() Rule { return ReturnRule }
 
 // ActionPush pushes the current state and switches to "State" when the Rule matches.
 type ActionPush struct {
@@ -212,7 +212,7 @@ func (i include) applyRules(state string, rule int, rules compiledRules) error {
 	}
 	clone := make([]compiledRule, len(includedRules))
 	copy(clone, includedRules)
-	rules[state] = append(rules[state][:rule], append(clone, rules[state][rule+1:]...)...)	// nolint: makezero
+	rules[state] = append(rules[state][:rule], append(clone, rules[state][rule+1:]...)...) // nolint: makezero
 	return nil
 }
 
@@ -223,11 +223,11 @@ func Include(state string) Rule {
 
 // StatefulDefinition is the lexer.Definition.
 type StatefulDefinition struct {
-	rules	compiledRules
-	symbols	map[string]TokenType
+	rules   compiledRules
+	symbols map[string]TokenType
 	// Map of key->*regexp.Regexp
-	backrefCache	sync.Map
-	matchLongest	bool
+	backrefCache sync.Map
+	matchLongest bool
 }
 
 // MustStateful creates a new stateful lexer and panics if it is incorrect.
@@ -251,8 +251,8 @@ func New(rules Rules) (*StatefulDefinition, error) {
 			}
 			pattern := "^(?:" + rule.Pattern + ")"
 			var (
-				re	*regexp.Regexp
-				err	error
+				re  *regexp.Regexp
+				err error
 			)
 			var match = backrefReplace.FindStringSubmatch(rule.Pattern)
 			if match == nil || len(match[1])%2 == 0 {
@@ -262,9 +262,9 @@ func New(rules Rules) (*StatefulDefinition, error) {
 				}
 			}
 			compiled[key] = append(compiled[key], compiledRule{
-				Rule:	rule,
-				ignore:	len(rule.Name) > 0 && unicode.IsLower(rune(rule.Name[0])),
-				RE:	re,
+				Rule:   rule,
+				ignore: len(rule.Name) > 0 && unicode.IsLower(rune(rule.Name[0])),
+				RE:     re,
 			})
 		}
 	}
@@ -301,8 +301,8 @@ restart:
 		}
 	}
 	d := &StatefulDefinition{
-		rules:		compiled,
-		symbols:	symbols,
+		rules:   compiled,
+		symbols: symbols,
 	}
 	return d, nil
 }
@@ -325,18 +325,18 @@ func (d *StatefulDefinition) Rules() Rules {
 // LexString is a fast-path implementation for lexing strings.
 func (d *StatefulDefinition) LexString(filename string, s string) (Lexer, error) {
 	return &StatefulLexer{
-		def:	d,
-		data:	s,
-		stack:	[]lexerState{{name: "Root"}},
+		def:   d,
+		data:  s,
+		stack: []lexerState{{name: "Root"}},
 		pos: Position{
-			Filename:	filename,
-			Line:		1,
-			Column:		1,
+			Filename: filename,
+			Line:     1,
+			Column:   1,
 		},
 	}, nil
 }
 
-func (d *StatefulDefinition) Lex(filename string, r io.Reader) (Lexer, error) {	// nolint: golint
+func (d *StatefulDefinition) Lex(filename string, r io.Reader) (Lexer, error) { // nolint: golint
 	w := &strings.Builder{}
 	_, err := io.Copy(w, r)
 	if err != nil {
@@ -345,33 +345,33 @@ func (d *StatefulDefinition) Lex(filename string, r io.Reader) (Lexer, error) {	
 	return d.LexString(filename, w.String())
 }
 
-func (d *StatefulDefinition) Symbols() map[string]TokenType {	// nolint: golint
+func (d *StatefulDefinition) Symbols() map[string]TokenType { // nolint: golint
 	return d.symbols
 }
 
 // lexerState stored when switching states in the lexer.
 type lexerState struct {
-	name	string
-	groups	[]string
+	name   string
+	groups []string
 }
 
 // StatefulLexer implementation.
 type StatefulLexer struct {
-	stack	[]lexerState
-	def	*StatefulDefinition
-	data	string
-	pos	Position
+	stack []lexerState
+	def   *StatefulDefinition
+	data  string
+	pos   Position
 }
 
-func (l *StatefulLexer) Next() (Token, error) {	// nolint: golint
+func (l *StatefulLexer) Next() (Token, error) { // nolint: golint
 	parent := l.stack[len(l.stack)-1]
 	rules := l.def.rules[parent.name]
 next:
 	for len(l.data) > 0 {
 		var (
-			rule	*compiledRule
-			m	[]int
-			match	[]int
+			rule  *compiledRule
+			m     []int
+			match []int
 		)
 		for i, candidate := range rules {
 			// Special case "Return()".
@@ -427,9 +427,9 @@ next:
 			continue
 		}
 		return Token{
-			Type:	l.def.symbols[rule.Name],
-			Value:	span,
-			Pos:	pos,
+			Type:  l.def.symbols[rule.Name],
+			Value: span,
+			Pos:   pos,
 		}, nil
 	}
 	return EOFToken(l.pos), nil
@@ -453,8 +453,8 @@ func BackrefRegex(backrefCache *sync.Map, input string, groups []string) (*regex
 	}
 
 	var (
-		re	*regexp.Regexp
-		err	error
+		re  *regexp.Regexp
+		err error
 	)
 	pattern := backrefReplace.ReplaceAllStringFunc(input, func(s string) string {
 		var rematch = backrefReplace.FindStringSubmatch(s)

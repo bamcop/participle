@@ -1,7 +1,6 @@
 package participle_test
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -10,10 +9,12 @@ import (
 	"strings"
 	"testing"
 	"text/scanner"
+
 	"github.com/alecthomas/assert/v2"
+	"github.com/cockroachdb/errors"
+
 	"github.com/bamcop/participle/v2"
 	"github.com/bamcop/participle/v2/lexer"
-	"github.com/cockroachdb/errors"
 )
 
 func TestProductionCapture(t *testing.T) {
@@ -69,8 +70,8 @@ func TestParseGroup(t *testing.T) {
 
 func TestParseAlternative(t *testing.T) {
 	type grammar struct {
-		A	string	`@"one" |`
-		B	string	`@"two"`
+		A string `@"one" |`
+		B string `@"two"`
 	}
 
 	parser := mustTestParser[grammar](t)
@@ -86,9 +87,9 @@ func TestParseAlternative(t *testing.T) {
 
 func TestParseSequence(t *testing.T) {
 	type grammar struct {
-		A	string	`@"one"`
-		B	string	`@"two"`
-		C	string	`@"three"`
+		A string `@"one"`
+		B string `@"two"`
+		C string `@"three"`
 	}
 
 	parser := mustTestParser[grammar](t)
@@ -106,8 +107,8 @@ func TestParseSequence(t *testing.T) {
 
 func TestNested(t *testing.T) {
 	type nestedInner struct {
-		B	string	`@"one"`
-		C	string	`@"two"`
+		B string `@"one"`
+		C string `@"two"`
 	}
 
 	type testNested struct {
@@ -124,8 +125,8 @@ func TestNested(t *testing.T) {
 
 func TestAccumulateNested(t *testing.T) {
 	type nestedInner struct {
-		B	string	`@"one"`
-		C	string	`@"two"`
+		B string `@"one"`
+		C string `@"two"`
 	}
 	type testAccumulateNested struct {
 		A []*nestedInner `@@+`
@@ -165,9 +166,9 @@ func TestRepetition(t *testing.T) {
 
 func TestRepetitionAcrossFields(t *testing.T) {
 	type testRepetition struct {
-		A	[]string	`@"."*`
-		B	*string		`(@"b" |`
-		C	*string		` @"c")`
+		A []string `@"."*`
+		B *string  `(@"b" |`
+		C *string  ` @"c")`
 	}
 
 	parser := mustTestParser[testRepetition](t)
@@ -176,16 +177,16 @@ func TestRepetitionAcrossFields(t *testing.T) {
 	c := "c"
 
 	expected := &testRepetition{
-		A:	[]string{".", ".", "."},
-		B:	&b,
+		A: []string{".", ".", "."},
+		B: &b,
 	}
 	actual, err := parser.ParseString("", "...b")
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
 
 	expected = &testRepetition{
-		A:	[]string{".", ".", "."},
-		C:	&c,
+		A: []string{".", ".", "."},
+		C: &c,
 	}
 	actual, err = parser.ParseString("", "...c")
 	assert.NoError(t, err)
@@ -240,19 +241,19 @@ type Literal struct {
 }
 
 type Range struct {
-	Start	string	`@String`
-	End	string	`"…" @String`
+	Start string `@String`
+	End   string `"…" @String`
 }
 
 type Term struct {
-	Name		string		`@Ident |`
-	Literal		*Literal	`@@ |`
-	Range		*Range		`@@ |`
-	Group		*Group		`@@ |`
-	LookaheadGroup	*LookaheadGroup	`@@ |`
-	Option		*EBNFOption	`@@ |`
-	Repetition	*Repetition	`@@ |`
-	Negation	*Negation	`@@`
+	Name           string          `@Ident |`
+	Literal        *Literal        `@@ |`
+	Range          *Range          `@@ |`
+	Group          *Group          `@@ |`
+	LookaheadGroup *LookaheadGroup `@@ |`
+	Option         *EBNFOption     `@@ |`
+	Repetition     *Repetition     `@@ |`
+	Negation       *Negation       `@@`
 }
 
 type Sequence struct {
@@ -264,8 +265,8 @@ type Expression struct {
 }
 
 type Production struct {
-	Name		string		`@Ident "="`
-	Expression	[]*Expression	`@@+ "."`
+	Name       string        `@Ident "="`
+	Expression []*Expression `@@+ "."`
 }
 
 type EBNF struct {
@@ -278,7 +279,7 @@ func TestEBNFParser(t *testing.T) {
 	expected := &EBNF{
 		Productions: []*Production{
 			{
-				Name:	"Production",
+				Name: "Production",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -307,7 +308,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"Expression",
+				Name: "Expression",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -335,7 +336,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"Alternative",
+				Name: "Alternative",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -362,7 +363,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"Term",
+				Name: "Term",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -395,7 +396,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"Group",
+				Name: "Group",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -411,7 +412,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"EBNFOption",
+				Name: "EBNFOption",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -427,7 +428,7 @@ func TestEBNFParser(t *testing.T) {
 				},
 			},
 			{
-				Name:	"Repetition",
+				Name: "Repetition",
 				Expression: []*Expression{
 					{
 						Alternatives: []*Sequence{
@@ -465,8 +466,8 @@ func TestParseExpression(t *testing.T) {
 		B string `";" @"b"*`
 	}
 	type testExpression struct {
-		A	*testNestA	`@@ |`
-		B	*testNestB	`@@`
+		A *testNestA `@@ |`
+		B *testNestB `@@`
 	}
 
 	parser := mustTestParser[testExpression](t)
@@ -483,8 +484,8 @@ func TestParseExpression(t *testing.T) {
 
 func TestParseOptional(t *testing.T) {
 	type testOptional struct {
-		A	string	`( @"a" @"b" )?`
-		B	string	`@"c"`
+		A string `( @"a" @"b" )?`
+		B string `@"c"`
 	}
 
 	parser := mustTestParser[testOptional](t)
@@ -497,8 +498,8 @@ func TestParseOptional(t *testing.T) {
 
 func TestHello(t *testing.T) {
 	type testHello struct {
-		Hello	string	`@"hello"`
-		To	string	`@String`
+		Hello string `@"hello"`
+		To    string `@String`
 	}
 
 	parser := mustTestParser[testHello](t, participle.Unquote())
@@ -537,8 +538,8 @@ Repetition  = "{" Expression "}" .
 
 func TestRepeatAcrossFields(t *testing.T) {
 	type grammar struct {
-		A	string	`( @("." ">") |`
-		B	string	`  @("," "<") )*`
+		A string `( @("." ">") |`
+		B string `  @("," "<") )*`
 	}
 
 	parser := mustTestParser[grammar](t)
@@ -552,45 +553,45 @@ func TestRepeatAcrossFields(t *testing.T) {
 
 func TestPosInjection(t *testing.T) {
 	type subgrammar struct {
-		Pos	lexer.Position
-		B	string	`@","*`
-		EndPos	lexer.Position
+		Pos    lexer.Position
+		B      string `@","*`
+		EndPos lexer.Position
 	}
 	type grammar struct {
-		Pos	lexer.Position
-		A	string		`@"."*`
-		B	*subgrammar	`@@`
-		C	string		`@"."`
-		EndPos	lexer.Position
+		Pos    lexer.Position
+		A      string      `@"."*`
+		B      *subgrammar `@@`
+		C      string      `@"."`
+		EndPos lexer.Position
 	}
 
 	parser := mustTestParser[grammar](t)
 
 	expected := &grammar{
 		Pos: lexer.Position{
-			Offset:	3,
-			Line:	1,
-			Column:	4,
+			Offset: 3,
+			Line:   1,
+			Column: 4,
 		},
-		A:	"...",
+		A: "...",
 		B: &subgrammar{
-			B:	",,,",
+			B: ",,,",
 			Pos: lexer.Position{
-				Offset:	6,
-				Line:	1,
-				Column:	7,
+				Offset: 6,
+				Line:   1,
+				Column: 7,
 			},
 			EndPos: lexer.Position{
-				Offset:	9,
-				Line:	1,
-				Column:	10,
+				Offset: 9,
+				Line:   1,
+				Column: 10,
 			},
 		},
-		C:	".",
+		C: ".",
 		EndPos: lexer.Position{
-			Offset:	10,
-			Line:	1,
-			Column:	11,
+			Offset: 10,
+			Line:   1,
+			Column: 11,
 		},
 	}
 
@@ -601,16 +602,16 @@ func TestPosInjection(t *testing.T) {
 
 func TestPosInjectionCustomPosition(t *testing.T) {
 	type Position struct {
-		Filename	string
-		Offset		int
-		Line		int
-		Column		int
+		Filename string
+		Offset   int
+		Line     int
+		Column   int
 	}
 	type grammar struct {
-		Pos	Position
-		EndPos	Position
+		Pos    Position
+		EndPos Position
 
-		Name	string	`@Ident`
+		Name string `@Ident`
 	}
 
 	parser := mustTestParser[grammar](t)
@@ -785,7 +786,7 @@ func TestMixinPosIsPopulated(t *testing.T) {
 	type grammar struct {
 		posMixin
 
-		Int	int	`@Int`
+		Int int `@Int`
 	}
 
 	p := mustTestParser[grammar](t)
@@ -797,14 +798,14 @@ func TestMixinPosIsPopulated(t *testing.T) {
 }
 
 type testParserMixin struct {
-	A	string	`@Ident`
-	B	string	`@Ident`
+	A string `@Ident`
+	B string `@Ident`
 }
 
 func TestMixinFieldsAreParsed(t *testing.T) {
 	type grammar struct {
 		testParserMixin
-		C	string	`@Ident`
+		C string `@Ident`
 	}
 	p := mustTestParser[grammar](t)
 	actual, err := p.ParseString("", "one two three")
@@ -831,25 +832,25 @@ func TestNestedOptional(t *testing.T) {
 
 func TestInvalidNumbers(t *testing.T) {
 	type grammar struct {
-		Int8	int8	`  "int8" @Int`
-		Int16	int16	`| "int16" @Int`
-		Int32	int32	`| "int32" @Int`
-		Int64	int64	`| "int64" @Int`
-		Uint8	uint8	`| "uint8" @Int`
-		Uint16	uint16	`| "uint16" @Int`
-		Uint32	uint32	`| "uint32" @Int`
-		Uint64	uint64	`| "uint64" @Int`
-		Float32	float32	`| "float32" @Float`
-		Float64	float64	`| "float64" @Float`
+		Int8    int8    `  "int8" @Int`
+		Int16   int16   `| "int16" @Int`
+		Int32   int32   `| "int32" @Int`
+		Int64   int64   `| "int64" @Int`
+		Uint8   uint8   `| "uint8" @Int`
+		Uint16  uint16  `| "uint16" @Int`
+		Uint32  uint32  `| "uint32" @Int`
+		Uint64  uint64  `| "uint64" @Int`
+		Float32 float32 `| "float32" @Float`
+		Float64 float64 `| "float64" @Float`
 	}
 
 	p := mustTestParser[grammar](t)
 
 	tests := []struct {
-		name		string
-		input		string
-		expected	*grammar
-		err		bool
+		name     string
+		input    string
+		expected *grammar
+		err      bool
 	}{
 		{name: "ValidInt8", input: "int8 127", expected: &grammar{Int8: 127}},
 		{name: "InvalidInt8", input: "int8 129", err: true},
@@ -880,8 +881,8 @@ func TestInvalidNumbers(t *testing.T) {
 
 func TestPartialAST(t *testing.T) {
 	type grammar struct {
-		Succeed	string	`@Ident`
-		Fail	string	`@"foo"`
+		Succeed string `@Ident`
+		Fail    string `@"foo"`
 	}
 	p := mustTestParser[grammar](t)
 	actual, err := p.ParseString("", `foo bar`)
@@ -945,10 +946,10 @@ func TestTrailing(t *testing.T) {
 }
 
 type modifierTest[G any] struct {
-	name		string
-	input		string
-	expected	string
-	fail		bool
+	name     string
+	input    string
+	expected string
+	fail     bool
 }
 
 func (test modifierTest[G]) test(t *testing.T) {
@@ -972,55 +973,55 @@ func TestModifiers(t *testing.T) {
 	}
 	tests := []interface{ test(t *testing.T) }{
 		modifierTest[nonEmptyGrammar]{name: "NonMatchingOptionalNonEmpty",
-			input:	"b",
-			fail:	true,
+			input: "b",
+			fail:  true,
 		},
 		modifierTest[nonEmptyGrammar]{name: "NonEmptyMatch",
-			input:		"x b",
-			expected:	"xb",
+			input:    "x b",
+			expected: "xb",
 		},
 		modifierTest[nonEmptyGrammar]{name: "NonEmptyMatchAll",
-			input:		"x y z b",
-			expected:	"xyzb",
+			input:    "x y z b",
+			expected: "xyzb",
 		},
 		modifierTest[nonEmptyGrammar]{name: "NonEmptyMatchSome",
-			input:		"x z b",
-			expected:	"xzb",
+			input:    "x z b",
+			expected: "xzb",
 		},
 		modifierTest[struct {
 			A string `@( "a"? "b" )`
 		}]{name: "MatchingOptional",
-			input:		"a b",
-			expected:	"ab",
+			input:    "a b",
+			expected: "ab",
 		},
 		modifierTest[struct {
 			A string `@( "a"? "b" )`
 		}]{name: "NonMatchingOptionalIsSkipped",
-			input:		"b",
-			expected:	"b",
+			input:    "b",
+			expected: "b",
 		},
 		modifierTest[struct {
 			A string `@( "a"+ )`
 		}]{name: "MatchingOneOrMore",
-			input:		"a a a a a",
-			expected:	"aaaaa",
+			input:    "a a a a a",
+			expected: "aaaaa",
 		},
 		modifierTest[struct {
 			A string `@( "a"+ )`
 		}]{name: "NonMatchingOneOrMore",
-			input:	"",
-			fail:	true,
+			input: "",
+			fail:  true,
 		},
 		modifierTest[struct {
 			A string `@( "a"* )`
 		}]{name: "MatchingZeroOrMore",
-			input:	"aaaaaaa",
-			fail:	true,
+			input: "aaaaaaa",
+			fail:  true,
 		},
 		modifierTest[struct {
 			A string `@( "a"* )`
 		}]{name: "NonMatchingZeroOrMore",
-			input:	"",
+			input: "",
 		},
 	}
 	for _, test := range tests {
@@ -1030,12 +1031,12 @@ func TestModifiers(t *testing.T) {
 
 func TestNonEmptyMatchWithOptionalGroup(t *testing.T) {
 	type term struct {
-		Minus	bool	`@'-'?`
-		Name	string	`@Ident`
+		Minus bool   `@'-'?`
+		Name  string `@Ident`
 	}
 	type grammar struct {
-		Start	term	`parser:"'[' (@@?"`
-		End	term	`parser:"     (':' @@)?)! ']'"`
+		Start term `parser:"'[' (@@?"`
+		End   term `parser:"     (':' @@)?)! ']'"`
 	}
 
 	p := mustTestParser[grammar](t)
@@ -1114,8 +1115,8 @@ func TestAllowTrailing(t *testing.T) {
 
 func TestDisjunctionErrorReporting(t *testing.T) {
 	type statement struct {
-		Add	bool	`  @"add"`
-		Remove	bool	`| @"remove"`
+		Add    bool `  @"add"`
+		Remove bool `| @"remove"`
 	}
 	type grammar struct {
 		Statements []*statement `"{" ( @@ )* "}"`
@@ -1263,16 +1264,16 @@ func TestNegationLookaheadError(t *testing.T) {
 
 func TestLookaheadGroup_Positive_SingleToken(t *testing.T) {
 	type val struct {
-		Str	string	`  @String`
-		Int	int	`| @Int`
+		Str string `  @String`
+		Int int    `| @Int`
 	}
 	type op struct {
-		Op	string	`@('+' | '*' (?= @Int))`
-		Operand	val	`@@`
+		Op      string `@('+' | '*' (?= @Int))`
+		Operand val    `@@`
 	}
 	type sum struct {
-		Left	val	`@@`
-		Ops	[]op	`@@*`
+		Left val  `@@`
+		Ops  []op `@@*`
 	}
 	p := mustTestParser[sum](t)
 
@@ -1299,8 +1300,8 @@ func TestLookaheadGroup_Negative_SingleToken(t *testing.T) {
 		Name string `@Ident`
 	}
 	type grammar struct {
-		Identifiers	[]variable	`((?! 'except'|'end') @@)*`
-		Except		*variable	`('except' @@)? 'end'`
+		Identifiers []variable `((?! 'except'|'end') @@)*`
+		Except      *variable  `('except' @@)? 'end'`
 	}
 	p := mustTestParser[grammar](t)
 
@@ -1350,15 +1351,15 @@ func TestLookaheadGroup_Negative_MultipleTokens(t *testing.T) {
 
 func TestASTTokens(t *testing.T) {
 	type subject struct {
-		Tokens	[]lexer.Token
+		Tokens []lexer.Token
 
-		Word	string	`@Ident`
+		Word string `@Ident`
 	}
 
 	type hello struct {
-		Tokens	[]lexer.Token
+		Tokens []lexer.Token
 
-		Subject	subject	`"hello" @@`
+		Subject subject `"hello" @@`
 	}
 
 	p := mustTestParser[hello](t,
@@ -1375,10 +1376,10 @@ func TestASTTokens(t *testing.T) {
 		{-2, "world", lexer.Position{Offset: 6, Line: 1, Column: 7}},
 	}
 	expected := &hello{
-		Tokens:	tokens,
+		Tokens: tokens,
 		Subject: subject{
-			Tokens:	tokens[1:],
-			Word:	"world",
+			Tokens: tokens[1:],
+			Word:   "world",
 		},
 	}
 	assert.Equal(t, expected, actual)
@@ -1386,15 +1387,15 @@ func TestASTTokens(t *testing.T) {
 
 func TestCaptureIntoToken(t *testing.T) {
 	type ast struct {
-		Head	lexer.Token	`@Ident`
-		Tail	[]lexer.Token	`@(Ident*)`
+		Head lexer.Token   `@Ident`
+		Tail []lexer.Token `@(Ident*)`
 	}
 
 	p := mustTestParser[ast](t)
 	actual, err := p.ParseString("", "hello waz baz")
 	assert.NoError(t, err)
 	expected := &ast{
-		Head:	lexer.Token{-2, "hello", lexer.Position{Line: 1, Column: 1}},
+		Head: lexer.Token{-2, "hello", lexer.Position{Line: 1, Column: 1}},
 		Tail: []lexer.Token{
 			{-2, "waz", lexer.Position{Offset: 6, Line: 1, Column: 7}},
 			{-2, "baz", lexer.Position{Offset: 10, Line: 1, Column: 11}},
@@ -1405,25 +1406,25 @@ func TestCaptureIntoToken(t *testing.T) {
 
 func TestEndPos(t *testing.T) {
 	type Ident struct {
-		Pos	lexer.Position
-		EndPos	lexer.Position
-		Text	string	`parser:"@Ident"`
+		Pos    lexer.Position
+		EndPos lexer.Position
+		Text   string `parser:"@Ident"`
 	}
 
 	type AST struct {
-		First	*Ident	`parser:"@@"`
-		Second	*Ident	`parser:"@@"`
+		First  *Ident `parser:"@@"`
+		Second *Ident `parser:"@@"`
 	}
 
 	var (
-		Lexer	= lexer.Must(lexer.New(lexer.Rules{
+		Lexer = lexer.Must(lexer.New(lexer.Rules{
 			"Root": {
 				{"Ident", `[\w:]+`, nil},
 				{"Whitespace", `[\r\t ]+`, nil},
 			},
 		}))
 
-		Parser	= participle.MustBuild[AST](
+		Parser = participle.MustBuild[AST](
 			participle.Lexer(Lexer),
 			participle.Elide("Whitespace"),
 		)
@@ -1437,20 +1438,20 @@ func TestEndPos(t *testing.T) {
 
 func TestBug(t *testing.T) {
 	type A struct {
-		Shared	string	`parser:"@'1'"`
-		Diff	string	`parser:"@A"`
+		Shared string `parser:"@'1'"`
+		Diff   string `parser:"@A"`
 	}
 	type B struct {
-		Shared	string	`parser:"@'1'"`
-		Diff	string	`parser:"@B"`
+		Shared string `parser:"@'1'"`
+		Diff   string `parser:"@B"`
 	}
 	type AST struct {
-		Branch	string	`parser:"@'branch'"`
-		A	*A	`parser:"( @@"`
-		B	*B	`parser:"| @@ )"`
+		Branch string `parser:"@'branch'"`
+		A      *A     `parser:"( @@"`
+		B      *B     `parser:"| @@ )"`
 	}
 	var (
-		lexer	= lexer.Must(lexer.New(lexer.Rules{
+		lexer = lexer.Must(lexer.New(lexer.Rules{
 			"Root": {
 				{"A", `@`, nil},
 				{"B", `!`, nil},
@@ -1458,16 +1459,16 @@ func TestBug(t *testing.T) {
 				{"Whitespace", `[\r\t ]+`, nil},
 			},
 		}))
-		parser	= participle.MustBuild[AST](
+		parser = participle.MustBuild[AST](
 			participle.Lexer(lexer),
 			participle.Elide("Whitespace"),
 		)
 	)
 	expected := &AST{
-		Branch:	"branch",
+		Branch: "branch",
 		B: &B{
-			Shared:	"1",
-			Diff:	"!",
+			Shared: "1",
+			Diff:   "!",
 		},
 	}
 	actual, err := parser.Parse("name", strings.NewReader(`branch 1!`))
@@ -1482,11 +1483,11 @@ func (c *sliceCapture) Capture(values []string) error {
 	return nil
 }
 
-func TestCaptureOnSliceElements(t *testing.T) {	// nolint:dupl
+func TestCaptureOnSliceElements(t *testing.T) { // nolint:dupl
 	type capture struct {
-		Single		*sliceCapture	`@Capture`
-		Slice		[]sliceCapture	`@Capture @Capture`
-		SlicePtr	[]*sliceCapture	`@Capture @Capture`
+		Single   *sliceCapture   `@Capture`
+		Slice    []sliceCapture  `@Capture @Capture`
+		SlicePtr []*sliceCapture `@Capture @Capture`
 	}
 
 	parser := participle.MustBuild[capture]([]participle.Option{
@@ -1504,9 +1505,9 @@ func TestCaptureOnSliceElements(t *testing.T) {	// nolint:dupl
 	expectedSlicePtr1 := sliceCapture("LMN")
 	expectedSlicePtr2 := sliceCapture("OPQ")
 	expected := &capture{
-		Single:		&expectedSingle,
-		Slice:		[]sliceCapture{"DEF", "IJK"},
-		SlicePtr:	[]*sliceCapture{&expectedSlicePtr1, &expectedSlicePtr2},
+		Single:   &expectedSingle,
+		Slice:    []sliceCapture{"DEF", "IJK"},
+		SlicePtr: []*sliceCapture{&expectedSlicePtr1, &expectedSlicePtr2},
 	}
 
 	assert.Equal(t, expected, captured)
@@ -1524,10 +1525,10 @@ func (s *sliceParse) Parse(lex *lexer.PeekingLexer) error {
 	return nil
 }
 
-func TestParseOnSliceElements(t *testing.T) {	// nolint:dupl
+func TestParseOnSliceElements(t *testing.T) { // nolint:dupl
 	type parse struct {
-		Single	*sliceParse	`@@`
-		Slice	[]sliceParse	`@@+`
+		Single *sliceParse  `@@`
+		Slice  []sliceParse `@@+`
 	}
 
 	parser := participle.MustBuild[parse]([]participle.Option{
@@ -1543,8 +1544,8 @@ func TestParseOnSliceElements(t *testing.T) {	// nolint:dupl
 
 	expectedSingle := sliceParse("abcabc")
 	expected := &parse{
-		Single:	&expectedSingle,
-		Slice:	[]sliceParse{"defdef", "ijkijk"},
+		Single: &expectedSingle,
+		Slice:  []sliceParse{"defdef", "ijkijk"},
 	}
 
 	assert.Equal(t, expected, parsed)
@@ -1586,11 +1587,11 @@ func TestCaptureIP(t *testing.T) {
 
 func BenchmarkIssue143(b *testing.B) {
 	type Disjunction struct {
-		Long1	bool	`parser:"  '<' '1' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
-		Long2	bool	`parser:"| '<' '2' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
-		Long3	bool	`parser:"| '<' '3' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
-		Long4	bool	`parser:"| '<' '4' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
-		Real	bool	`parser:"| '<' 'x' '>'"`
+		Long1 bool `parser:"  '<' '1' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
+		Long2 bool `parser:"| '<' '2' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
+		Long3 bool `parser:"| '<' '3' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
+		Long4 bool `parser:"| '<' '4' ' ' 'l' 'o' 'n' 'g' ' ' 'r' 'u' 'l' 'e' ' ' 't' 'o' ' ' 'f' 'o' 'r' 'm' 'a' 't' '>'"`
+		Real  bool `parser:"| '<' 'x' '>'"`
 	}
 
 	type Disjunctions struct {
@@ -1609,13 +1610,13 @@ func BenchmarkIssue143(b *testing.B) {
 }
 
 type Boxes struct {
-	Pos	lexer.Position
-	Boxes	Box	`@Ident`
+	Pos   lexer.Position
+	Boxes Box `@Ident`
 }
 
 type Box struct {
-	Pos	lexer.Position
-	Val	string	`@Ident`
+	Pos lexer.Position
+	Val string `@Ident`
 }
 
 func (b *Box) Capture(values []string) error {
@@ -1650,15 +1651,15 @@ func TestMatchEOF(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestParseExplicitElidedIdent(t *testing.T) {	// nolint
+func TestParseExplicitElidedIdent(t *testing.T) { // nolint
 	lex := lexer.MustSimple([]lexer.SimpleRule{
 		{"Ident", `[a-zA-Z](\w|\.|/|:|-)*`},
 		{"Comment", `/\*[^*]*\*/`},
 		{"whitespace", `\s+`},
 	})
 	type grammar struct {
-		Comment	string	`@Comment?`
-		Ident	string	`@Ident`
+		Comment string `@Comment?`
+		Ident   string `@Ident`
 	}
 	p := mustTestParser[grammar](t, participle.Lexer(lex), participle.Elide("Comment"))
 
@@ -1671,15 +1672,15 @@ func TestParseExplicitElidedIdent(t *testing.T) {	// nolint
 	assert.Equal(t, &grammar{Comment: `/* Comment */`, Ident: "hello"}, actual)
 }
 
-func TestParseExplicitElidedTypedLiteral(t *testing.T) {	// nolint
+func TestParseExplicitElidedTypedLiteral(t *testing.T) { // nolint
 	lex := lexer.MustSimple([]lexer.SimpleRule{
 		{"Ident", `[a-zA-Z](\w|\.|/|:|-)*`},
 		{"Comment", `/\*[^*]*\*/`},
 		{"whitespace", `\s+`},
 	})
 	type grammar struct {
-		Comment	string	`@"/* Comment */":Comment?`
-		Ident	string	`@Ident`
+		Comment string `@"/* Comment */":Comment?`
+		Ident   string `@Ident`
 	}
 	p := mustTestParser[grammar](t, participle.Lexer(lex), participle.Elide("Comment"))
 
@@ -1699,8 +1700,8 @@ func TestEmptySequenceMatches(t *testing.T) {
 		{"Whitespace", `\s+`},
 	})
 	type grammar struct {
-		Ident		[]string	`@Ident*`
-		Comments	[]string	`@Comment*`
+		Ident    []string `@Ident*`
+		Comments []string `@Comment*`
 	}
 	p := mustTestParser[grammar](t, participle.Lexer(lex), participle.Elide("Whitespace"))
 	expected := &grammar{}
@@ -1711,8 +1712,8 @@ func TestEmptySequenceMatches(t *testing.T) {
 
 type RootParseableFail struct{}
 
-func (*RootParseableFail) String() string	{ return "" }
-func (*RootParseableFail) GoString() string	{ return "" }
+func (*RootParseableFail) String() string   { return "" }
+func (*RootParseableFail) GoString() string { return "" }
 func (*RootParseableFail) Parse(lex *lexer.PeekingLexer) error {
 	return errors.New("always fail immediately")
 }
@@ -1724,16 +1725,16 @@ func TestRootParseableFail(t *testing.T) {
 }
 
 type (
-	TestCustom	interface{ isTestCustom() }
+	TestCustom interface{ isTestCustom() }
 
-	CustomIdent	string
-	CustomNumber	float64
-	CustomBoolean	bool
+	CustomIdent   string
+	CustomNumber  float64
+	CustomBoolean bool
 )
 
-func (CustomIdent) isTestCustom()	{}
-func (CustomNumber) isTestCustom()	{}
-func (CustomBoolean) isTestCustom()	{}
+func (CustomIdent) isTestCustom()   {}
+func (CustomNumber) isTestCustom()  {}
+func (CustomBoolean) isTestCustom() {}
 
 func TestParserWithCustomProduction(t *testing.T) {
 	type grammar struct {
@@ -1760,8 +1761,8 @@ func TestParserWithCustomProduction(t *testing.T) {
 	}))
 
 	type testCase struct {
-		src		string
-		expected	TestCustom
+		src      string
+		expected TestCustom
 	}
 
 	for _, c := range []testCase{
@@ -1779,36 +1780,36 @@ func TestParserWithCustomProduction(t *testing.T) {
 }
 
 type (
-	TestUnionA	interface{ isTestUnionA() }
-	TestUnionB	interface{ isTestUnionB() }
+	TestUnionA interface{ isTestUnionA() }
+	TestUnionB interface{ isTestUnionB() }
 
-	AMember1	struct {
+	AMember1 struct {
 		V string `@Ident`
 	}
 
-	AMember2	struct {
+	AMember2 struct {
 		V TestUnionB `"[" @@ "]"`
 	}
 
-	BMember1	struct {
+	BMember1 struct {
 		V float64 `@Int | @Float`
 	}
 
-	BMember2	struct {
+	BMember2 struct {
 		V TestUnionA `"{" @@ "}"`
 	}
 )
 
-func (AMember1) isTestUnionA()	{}
-func (AMember2) isTestUnionA()	{}
+func (AMember1) isTestUnionA() {}
+func (AMember2) isTestUnionA() {}
 
-func (BMember1) isTestUnionB()	{}
-func (BMember2) isTestUnionB()	{}
+func (BMember1) isTestUnionB() {}
+func (BMember2) isTestUnionB() {}
 
 func TestParserWithUnion(t *testing.T) {
 	type grammar struct {
-		A	TestUnionA	`@@`
-		B	TestUnionB	`| @@`
+		A TestUnionA `@@`
+		B TestUnionB `| @@`
 	}
 
 	parser := mustTestParser[grammar](t, participle.UseLookahead(10),
@@ -1816,8 +1817,8 @@ func TestParserWithUnion(t *testing.T) {
 		participle.Union[TestUnionB](BMember1{}, BMember2{}))
 
 	type testCase struct {
-		src		string
-		expected	grammar
+		src      string
+		expected grammar
 	}
 
 	for _, c := range []testCase{
@@ -1830,7 +1831,7 @@ func TestParserWithUnion(t *testing.T) {
 		var trace strings.Builder
 		actual, err := parser.ParseString("", c.src, participle.Trace(&trace))
 		assert.NoError(t, err)
-		assert.Equal(t, &c.expected, actual)	//nolint:gosec
+		assert.Equal(t, &c.expected, actual) //nolint:gosec
 		assert.NotEqual(t, "", trace.String())
 	}
 
@@ -1847,12 +1848,12 @@ BMember2 = "{" TestUnionA "}" .
 
 func TestParseSubProduction(t *testing.T) {
 	type (
-		ListItem	struct {
-			Number	*float64	`(@Int | @Float)`
-			String	*string		`| @String`
+		ListItem struct {
+			Number *float64 `(@Int | @Float)`
+			String *string  `| @String`
 		}
 
-		Grammar	struct {
+		Grammar struct {
 			List []ListItem `"[" @@ ("," @@)* "]"`
 		}
 	)
@@ -1894,7 +1895,7 @@ type I255String struct {
 	Value string `@String`
 }
 
-func (*I255String) union()	{}
+func (*I255String) union() {}
 
 func TestIssue255(t *testing.T) {
 	parser, err := participle.Build[I255Grammar](
@@ -1908,9 +1909,9 @@ func TestIssue255(t *testing.T) {
 
 func TestParseNumbers(t *testing.T) {
 	type grammar struct {
-		Int	int8	`@('-'? Int)`
-		Uint	uint16	`@('-'? Int)`
-		Float	float64	`@Ident`
+		Int   int8    `@('-'? Int)`
+		Uint  uint16  `@('-'? Int)`
+		Float float64 `@Ident`
 	}
 	parser := participle.MustBuild[grammar]()
 	_, err := parser.ParseString("", `300 0 x`)
