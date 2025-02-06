@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 	"unicode/utf8"
-
 	"github.com/bamcop/participle/v2"
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 var _ syntax.Op
@@ -25,26 +25,26 @@ type lexerGeneratedBasicDefinitionImpl struct{}
 
 func (lexerGeneratedBasicDefinitionImpl) Symbols() map[string]lexer.TokenType {
 	return map[string]lexer.TokenType{
-		"Comment":    -7,
-		"EOF":        -1,
-		"EOL":        -6,
-		"Ident":      -4,
-		"Number":     -3,
-		"Punct":      -5,
-		"String":     -2,
-		"Whitespace": -8,
+		"Comment":	-7,
+		"EOF":		-1,
+		"EOL":		-6,
+		"Ident":	-4,
+		"Number":	-3,
+		"Punct":	-5,
+		"String":	-2,
+		"Whitespace":	-8,
 	}
 }
 
 func (lexerGeneratedBasicDefinitionImpl) LexString(filename string, s string) (lexer.Lexer, error) {
 	return &lexerGeneratedBasicImpl{
-		s: s,
+		s:	s,
 		pos: lexer.Position{
-			Filename: filename,
-			Line:     1,
-			Column:   1,
+			Filename:	filename,
+			Line:		1,
+			Column:		1,
 		},
-		states: []lexerGeneratedBasicState{{name: "Root"}},
+		states:	[]lexerGeneratedBasicState{{name: "Root"}},
 	}, nil
 }
 
@@ -56,21 +56,21 @@ func (d lexerGeneratedBasicDefinitionImpl) Lex(filename string, r io.Reader) (le
 	s := &strings.Builder{}
 	_, err := io.Copy(s, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return d.LexString(filename, s.String())
 }
 
 type lexerGeneratedBasicState struct {
-	name   string
-	groups []string
+	name	string
+	groups	[]string
 }
 
 type lexerGeneratedBasicImpl struct {
-	s      string
-	p      int
-	pos    lexer.Position
-	states []lexerGeneratedBasicState
+	s	string
+	p	int
+	pos	lexer.Position
+	states	[]lexerGeneratedBasicState
 }
 
 func (l *lexerGeneratedBasicImpl) Next() (lexer.Token, error) {
@@ -78,9 +78,9 @@ func (l *lexerGeneratedBasicImpl) Next() (lexer.Token, error) {
 		return lexer.EOFToken(l.pos), nil
 	}
 	var (
-		state  = l.states[len(l.states)-1]
-		groups []int
-		sym    lexer.TokenType
+		state	= l.states[len(l.states)-1]
+		groups	[]int
+		sym	lexer.TokenType
 	)
 	switch state.name {
 	case "Root":
@@ -119,9 +119,9 @@ func (l *lexerGeneratedBasicImpl) Next() (lexer.Token, error) {
 	l.p = groups[1]
 	l.pos.Advance(span)
 	return lexer.Token{
-		Type:  sym,
-		Value: span,
-		Pos:   pos,
+		Type:	sym,
+		Value:	span,
+		Pos:	pos,
 	}, nil
 }
 
@@ -155,8 +155,8 @@ func matchGeneratedBasicString(s string, p int, backrefs []string) (groups [4]in
 			return -1
 		}
 		var (
-			rn rune
-			n  int
+			rn	rune
+			n	int
 		)
 		if s[p] < utf8.RuneSelf {
 			rn, n = rune(s[p]), 1
@@ -468,8 +468,8 @@ func matchGeneratedBasicComment(s string, p int, backrefs []string) (groups [2]i
 			return -1
 		}
 		var (
-			rn rune
-			n  int
+			rn	rune
+			n	int
 		)
 		if s[p] < utf8.RuneSelf {
 			rn, n = rune(s[p]), 1

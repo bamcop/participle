@@ -12,16 +12,16 @@ import (
 	"text/template"
 	"unicode"
 	"unicode/utf8"
-
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 type genLexerCmd struct {
-	Name    string   `help:"Name of the lexer."`
-	Output  string   `short:"o" help:"Output file."`
-	Tags    string   `help:"Build tags to include in the generated file."`
-	Package string   `arg:"" required:"" help:"Go package for generated code."`
-	Lexer   *os.File `arg:"" default:"-" help:"JSON representation of a Participle lexer (read from stdin if omitted)."`
+	Name	string		`help:"Name of the lexer."`
+	Output	string		`short:"o" help:"Output file."`
+	Tags	string		`help:"Build tags to include in the generated file."`
+	Package	string		`arg:"" required:"" help:"Go package for generated code."`
+	Lexer	*os.File	`arg:"" default:"-" help:"JSON representation of a Participle lexer (read from stdin if omitted)."`
 }
 
 func (c *genLexerCmd) Help() string {
@@ -36,32 +36,32 @@ func (c *genLexerCmd) Run() error {
 	rules := lexer.Rules{}
 	err := json.NewDecoder(c.Lexer).Decode(&rules)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	def, err := lexer.New(rules)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	out := os.Stdout
 	if c.Output != "" {
 		out, err = os.Create(c.Output)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		defer out.Close()
 	}
 	err = generateLexer(out, c.Package, def, c.Name, c.Tags)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
 
 var (
 	//go:embed codegen.go.tmpl
-	codegenTemplateSource string
-	codegenBackrefRe      = regexp.MustCompile(`(\\+)(\d)`)
-	codegenTemplate       = template.Must(template.New("lexgen").Funcs(template.FuncMap{
+	codegenTemplateSource	string
+	codegenBackrefRe	= regexp.MustCompile(`(\\+)(\d)`)
+	codegenTemplate		= template.Must(template.New("lexgen").Funcs(template.FuncMap{
 		"IsPush": func(r lexer.Rule) string {
 			if p, ok := r.Action.(lexer.ActionPush); ok {
 				return p.State
@@ -75,7 +75,7 @@ var (
 		"IsReturn": func(r lexer.Rule) bool {
 			return r == lexer.ReturnRule
 		},
-		"OrderRules": orderRules,
+		"OrderRules":	orderRules,
 		"HaveBackrefs": func(def *lexer.StatefulDefinition, state string) bool {
 			for _, rule := range def.Rules()[state] {
 				if codegenBackrefRe.MatchString(rule.Pattern) {
@@ -89,17 +89,17 @@ var (
 
 func generateLexer(w io.Writer, pkg string, def *lexer.StatefulDefinition, name, tags string) error {
 	type ctx struct {
-		Package string
-		Name    string
-		Tags    string
-		Def     *lexer.StatefulDefinition
+		Package	string
+		Name	string
+		Tags	string
+		Def	*lexer.StatefulDefinition
 	}
 	rules := def.Rules()
 	err := codegenTemplate.Execute(w, ctx{pkg, name, tags, def})
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-	seen := map[string]bool{} // Rules can be duplicated by Include().
+	seen := map[string]bool{}	// Rules can be duplicated by Include().
 	for _, rules := range orderRules(rules) {
 		for _, rule := range rules.Rules {
 			if rule.Name == "" {
@@ -112,7 +112,7 @@ func generateLexer(w io.Writer, pkg string, def *lexer.StatefulDefinition, name,
 			fmt.Fprintf(w, "\n")
 			err := generateRegexMatch(w, name, rule.Name, rule.Pattern)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 		}
 	}
@@ -120,16 +120,16 @@ func generateLexer(w io.Writer, pkg string, def *lexer.StatefulDefinition, name,
 }
 
 type orderedRule struct {
-	Name  string
-	Rules []lexer.Rule
+	Name	string
+	Rules	[]lexer.Rule
 }
 
 func orderRules(rules lexer.Rules) []orderedRule {
 	orderedRules := []orderedRule{}
 	for name, rules := range rules {
 		orderedRules = append(orderedRules, orderedRule{
-			Name:  name,
-			Rules: rules,
+			Name:	name,
+			Rules:	rules,
 		})
 	}
 	sort.Slice(orderedRules, func(i, j int) bool {
@@ -149,7 +149,7 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 	}
 	re, err := syntax.Parse(pattern, syntax.Perl)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	ids := map[string]int{}
 	idn := 0
@@ -203,14 +203,14 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 			panic("non-greedy match not supported: " + re.String())
 		}
 		switch re.Op {
-		case syntax.OpNoMatch: // matches no strings
+		case syntax.OpNoMatch:	// matches no strings
 			fmt.Fprintf(w, "return p\n")
 
-		case syntax.OpEmptyMatch: // matches empty string
+		case syntax.OpEmptyMatch:	// matches empty string
 			fmt.Fprintf(w, "if len(s) == 0 { return p }\n")
 			fmt.Fprintf(w, "return -1\n")
 
-		case syntax.OpLiteral: // matches Runes sequence
+		case syntax.OpLiteral:	// matches Runes sequence
 			n := utf8.RuneCountInString(string(re.Rune))
 			if re.Flags&syntax.FoldCase != 0 {
 				if n == 1 && !unicode.IsLetter(re.Rune[0]) {
@@ -227,7 +227,7 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 			}
 			fmt.Fprintf(w, "return -1\n")
 
-		case syntax.OpCharClass: // matches Runes interpreted as range pair list
+		case syntax.OpCharClass:	// matches Runes interpreted as range pair list
 			fmt.Fprintf(w, "if len(s) <= p { return -1 }\n")
 			needDecode := false
 			asciiSet := true
@@ -287,13 +287,13 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 			}
 			fmt.Fprintf(w, "return -1\n")
 
-		case syntax.OpAnyCharNotNL: // matches any character except newline
+		case syntax.OpAnyCharNotNL:	// matches any character except newline
 			fmt.Fprintf(w, "var (rn rune; n int)\n")
 			decodeRune(w, "p", "rn", "n")
 			fmt.Fprintf(w, "if len(s) <= p+n || rn == '\\n' { return -1 }\n")
 			fmt.Fprintf(w, "return p+n\n")
 
-		case syntax.OpAnyChar: // matches any character
+		case syntax.OpAnyChar:	// matches any character
 			fmt.Fprintf(w, "var n int\n")
 			fmt.Fprintf(w, "if s[p] < utf8.RuneSelf {\n")
 			fmt.Fprintf(w, "  n = 1\n")
@@ -319,17 +319,17 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 			fmt.Fprintf(w, "}\n")
 			fmt.Fprintf(w, "op := syntax.EmptyOpContext(l, u)\n")
 			lut := map[syntax.Op]string{
-				syntax.OpWordBoundary:   "EmptyWordBoundary",
-				syntax.OpNoWordBoundary: "EmptyNoWordBoundary",
-				syntax.OpBeginText:      "EmptyBeginText",
-				syntax.OpEndText:        "EmptyEndText",
-				syntax.OpBeginLine:      "EmptyBeginLine",
-				syntax.OpEndLine:        "EmptyEndLine",
+				syntax.OpWordBoundary:		"EmptyWordBoundary",
+				syntax.OpNoWordBoundary:	"EmptyNoWordBoundary",
+				syntax.OpBeginText:		"EmptyBeginText",
+				syntax.OpEndText:		"EmptyEndText",
+				syntax.OpBeginLine:		"EmptyBeginLine",
+				syntax.OpEndLine:		"EmptyEndLine",
 			}
 			fmt.Fprintf(w, "if op & syntax.%s != 0 { return p }\n", lut[re.Op])
 			fmt.Fprintf(w, "return -1\n")
 
-		case syntax.OpCapture: // capturing subexpression with index Cap, optional name Name
+		case syntax.OpCapture:	// capturing subexpression with index Cap, optional name Name
 			fmt.Fprintf(w, "np := l%d(s, p)\n", reid(re.Sub0[0]))
 			fmt.Fprintf(w, "if np != -1 {\n")
 			fmt.Fprintf(w, "  groups[%d] = p\n", re.Cap*2)
@@ -337,33 +337,33 @@ func generateRegexMatch(w io.Writer, lexerName, name, pattern string) error {
 			fmt.Fprintf(w, "}\n")
 			fmt.Fprintf(w, "return np")
 
-		case syntax.OpStar: // matches Sub[0] zero or more times
+		case syntax.OpStar:	// matches Sub[0] zero or more times
 			fmt.Fprintf(w, "for len(s) > p {\n")
 			fmt.Fprintf(w, "if np := l%d(s, p); np == -1 { return p } else { p = np }\n", reid(re.Sub0[0]))
 			fmt.Fprintf(w, "}\n")
 			fmt.Fprintf(w, "return p\n")
 
-		case syntax.OpPlus: // matches Sub[0] one or more times
+		case syntax.OpPlus:	// matches Sub[0] one or more times
 			fmt.Fprintf(w, "if p = l%d(s, p); p == -1 { return -1 }\n", reid(re.Sub0[0]))
 			fmt.Fprintf(w, "for len(s) > p {\n")
 			fmt.Fprintf(w, "if np := l%d(s, p); np == -1 { return p } else { p = np }\n", reid(re.Sub0[0]))
 			fmt.Fprintf(w, "}\n")
 			fmt.Fprintf(w, "return p\n")
 
-		case syntax.OpQuest: // matches Sub[0] zero or one times
+		case syntax.OpQuest:	// matches Sub[0] zero or one times
 			fmt.Fprintf(w, "if np := l%d(s, p); np != -1 { return np }\n", reid(re.Sub0[0]))
 			fmt.Fprintf(w, "return p\n")
 
-		case syntax.OpRepeat: // matches Sub[0] at least Min times, at most Max (Max == -1 is no limit)
+		case syntax.OpRepeat:	// matches Sub[0] at least Min times, at most Max (Max == -1 is no limit)
 			panic("??")
 
-		case syntax.OpConcat: // matches concatenation of Subs
+		case syntax.OpConcat:	// matches concatenation of Subs
 			for _, sub := range re.Sub {
 				fmt.Fprintf(w, "if p = l%d(s, p); p == -1 { return -1 }\n", reid(sub))
 			}
 			fmt.Fprintf(w, "return p\n")
 
-		case syntax.OpAlternate: // matches alternation of Subs
+		case syntax.OpAlternate:	// matches alternation of Subs
 			for _, sub := range re.Sub {
 				fmt.Fprintf(w, "if np := l%d(s, p); np != -1 { return np }\n", reid(sub))
 			}

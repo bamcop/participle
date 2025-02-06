@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-
 	"github.com/alecthomas/repr"
-
 	"github.com/bamcop/participle/v2"
+	"github.com/cockroachdb/errors"
 )
 
 type Evaluatable interface {
@@ -20,13 +19,13 @@ type Function func(args ...interface{}) (interface{}, error)
 // Context for evaluation.
 type Context struct {
 	// User-provided functions.
-	Functions map[string]Function
+	Functions	map[string]Function
 	// Vars defined during evaluation.
-	Vars map[string]interface{}
+	Vars	map[string]interface{}
 	// Reader from which INPUT is read.
-	Input io.Reader
+	Input	io.Reader
 	// Writer where PRINTing will write.
-	Output io.Writer
+	Output	io.Writer
 }
 
 func (p *Program) init() {
@@ -60,7 +59,7 @@ func (v *Value) Evaluate(ctx *Context) (interface{}, error) {
 func (f *Factor) Evaluate(ctx *Context) (interface{}, error) {
 	base, err := f.Base.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if f.Exponent == nil {
 		return base, nil
@@ -89,12 +88,12 @@ func (o *OpFactor) Evaluate(ctx *Context, lhs interface{}) (interface{}, error) 
 func (t *Term) Evaluate(ctx *Context) (interface{}, error) {
 	lhs, err := t.Left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for _, right := range t.Right {
 		rhs, err := right.Evaluate(ctx, lhs)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = rhs
 	}
@@ -118,12 +117,12 @@ func (o *OpTerm) Evaluate(ctx *Context, lhs interface{}) (interface{}, error) {
 func (c *Cmp) Evaluate(ctx *Context) (interface{}, error) {
 	lhs, err := c.Left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for _, right := range c.Right {
 		rhs, err := right.Evaluate(ctx, lhs)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = rhs
 	}
@@ -133,7 +132,7 @@ func (c *Cmp) Evaluate(ctx *Context) (interface{}, error) {
 func (o *OpCmp) Evaluate(ctx *Context, lhs interface{}) (interface{}, error) {
 	rhs, err := o.Cmp.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	switch lhs := lhs.(type) {
 	case float64:
@@ -183,12 +182,12 @@ func (o *OpCmp) Evaluate(ctx *Context, lhs interface{}) (interface{}, error) {
 func (e *Expression) Evaluate(ctx *Context) (interface{}, error) {
 	lhs, err := e.Left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for _, right := range e.Right {
 		rhs, err := right.Evaluate(ctx, lhs)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = rhs
 	}
@@ -204,7 +203,7 @@ func (c *Call) Evaluate(ctx *Context) (interface{}, error) {
 	for _, arg := range c.Args {
 		value, err := arg.Evaluate(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		args = append(args, value)
 	}
@@ -222,10 +221,10 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 	}
 
 	ctx := &Context{
-		Vars:      map[string]interface{}{},
-		Functions: functions,
-		Input:     r,
-		Output:    w,
+		Vars:		map[string]interface{}{},
+		Functions:	functions,
+		Input:		r,
+		Output:		w,
 	}
 
 	for index := 0; index < len(p.Commands); {
@@ -246,7 +245,7 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 			cmd := cmd.Let
 			value, err := cmd.Value.Evaluate(ctx)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			ctx.Vars[cmd.Variable] = value
 
@@ -254,7 +253,7 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 			cmd := cmd.Print
 			value, err := cmd.Expression.Evaluate(ctx)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			fmt.Fprintln(ctx.Output, value)
 
@@ -271,7 +270,7 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 			cmd := cmd.If
 			condition, err := cmd.Condition.Evaluate(ctx)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			if test, ok := condition.(bool); ok && test {
 				next, ok := p.Table[cmd.Line]
@@ -285,7 +284,7 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 		case cmd.Call != nil:
 			_, err := cmd.Call.Evaluate(ctx)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 		default:
@@ -300,7 +299,7 @@ func (p *Program) Evaluate(r io.Reader, w io.Writer, functions map[string]Functi
 func evaluateFloats(ctx *Context, lhs interface{}, rhsExpr Evaluatable) (float64, float64, error) {
 	rhs, err := rhsExpr.Evaluate(ctx)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, errors.WithStack(err)
 	}
 	lhsNumber, ok := lhs.(float64)
 	if !ok {

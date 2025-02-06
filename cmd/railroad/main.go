@@ -6,21 +6,20 @@ import (
 	"flag"
 	"fmt"
 	"os"
-
 	"github.com/alecthomas/repr"
-
 	"github.com/bamcop/participle/v2/ebnf"
+	"github.com/cockroachdb/errors"
 )
 
 const (
-	mergeRefThreshold  = -1
-	mergeSizeThreshold = 0
+	mergeRefThreshold	= -1
+	mergeSizeThreshold	= 0
 )
 
 type production struct {
 	*ebnf.Production
-	refs int
-	size int
+	refs	int
+	size	int
 }
 
 // Embed the railroad-diagrams css and js files for later output.
@@ -200,7 +199,7 @@ func main() {
 	str := generate(productions, ast)
 
 	if *outputFile != "" {
-		err := os.WriteFile(*outputFile, []byte(str), 0644) // nolint
+		err := os.WriteFile(*outputFile, []byte(str), 0644)	// nolint
 		if err != nil {
 			panic(err)
 		}
@@ -231,11 +230,11 @@ func writeAssetFiles() (err error) {
 		fileName := f.Name()
 		data, err := assets.ReadFile(fmt.Sprintf("assets/%s", fileName))
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
-		err = os.WriteFile(fileName, data, 0644) // nolint
+		err = os.WriteFile(fileName, data, 0644)	// nolint
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		fmt.Fprintf(os.Stderr, ">>> File written: %s\n", fileName)
 	}

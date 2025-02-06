@@ -7,32 +7,32 @@ import (
 	"strings"
 	"text/scanner"
 	"unicode/utf8"
-
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 // A structLexer lexes over the tags of struct fields while tracking the current field.
 type structLexer struct {
-	s       reflect.Type
-	field   int
-	indexes [][]int
-	lexer   *lexer.PeekingLexer
+	s	reflect.Type
+	field	int
+	indexes	[][]int
+	lexer	*lexer.PeekingLexer
 }
 
 func lexStruct(s reflect.Type) (*structLexer, error) {
 	indexes, err := collectFieldIndexes(s)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	slex := &structLexer{
-		s:       s,
-		indexes: indexes,
+		s:		s,
+		indexes:	indexes,
 	}
 	if len(slex.indexes) > 0 {
 		tag := fieldLexerTag(slex.Field().StructField)
 		slex.lexer, err = lexer.Upgrade(newTagLexer(s.Name(), tag))
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	return slex, nil
@@ -45,7 +45,7 @@ func (s *structLexer) NumField() int {
 
 type structLexerField struct {
 	reflect.StructField
-	Index []int
+	Index	[]int
 }
 
 // Field returns the field associated with the current token.
@@ -58,8 +58,8 @@ func (s *structLexer) GetField(field int) structLexerField {
 		field = len(s.indexes) - 1
 	}
 	return structLexerField{
-		StructField: s.s.FieldByIndex(s.indexes[field]),
-		Index:       s.indexes[field],
+		StructField:	s.s.FieldByIndex(s.indexes[field]),
+		Index:		s.indexes[field],
 	}
 }
 
@@ -82,7 +82,7 @@ func (s *structLexer) Peek() (*lexer.Token, error) {
 		var err error
 		lex, err = lexer.Upgrade(newTagLexer(ft.Name, tag))
 		if err != nil {
-			return token, err
+			return token, errors.WithStack(err)
 		}
 	}
 }
@@ -103,7 +103,7 @@ func (s *structLexer) Next() (*lexer.Token, error) {
 	var err error
 	s.lexer, err = lexer.Upgrade(newTagLexer(ft.Name, tag))
 	if err != nil {
-		return token, err
+		return token, errors.WithStack(err)
 	}
 	return s.Next()
 }
@@ -124,10 +124,10 @@ func collectFieldIndexes(s reflect.Type) (out [][]int, err error) {
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)
 		switch {
-		case f.Anonymous && f.Type.Kind() == reflect.Struct: // Embedded struct.
+		case f.Anonymous && f.Type.Kind() == reflect.Struct:	// Embedded struct.
 			children, err := collectFieldIndexes(f.Type)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 			for _, idx := range children {
 				out = append(out, append(f.Index, idx...))
@@ -145,17 +145,17 @@ func collectFieldIndexes(s reflect.Type) (out [][]int, err error) {
 
 // tagLexer is a Lexer based on text/scanner.Scanner
 type tagLexer struct {
-	scanner  *scanner.Scanner
-	filename string
-	err      error
+	scanner		*scanner.Scanner
+	filename	string
+	err		error
 }
 
 func newTagLexer(filename string, tag string) *tagLexer {
 	s := &scanner.Scanner{}
 	s.Init(strings.NewReader(tag))
 	lexer := &tagLexer{
-		filename: filename,
-		scanner:  s,
+		filename:	filename,
+		scanner:	s,
 	}
 	lexer.scanner.Error = func(s *scanner.Scanner, msg string) {
 		// This is to support single quoted strings. Hacky.
@@ -175,9 +175,9 @@ func (t *tagLexer) Next() (lexer.Token, error) {
 		return lexer.Token{}, t.err
 	}
 	return textScannerTransform(lexer.Token{
-		Type:  lexer.TokenType(typ),
-		Value: text,
-		Pos:   pos,
+		Type:	lexer.TokenType(typ),
+		Value:	text,
+		Pos:	pos,
 	})
 }
 

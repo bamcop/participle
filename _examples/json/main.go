@@ -3,15 +3,14 @@ package main
 
 import (
 	"os"
-
 	"github.com/alecthomas/kong"
-
 	"github.com/bamcop/participle/v2"
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 var (
-	jsonLexer = lexer.MustSimple([]lexer.SimpleRule{
+	jsonLexer	= lexer.MustSimple([]lexer.SimpleRule{
 		{Name: "Comment", Pattern: `\/\/[^\n]*`},
 		{Name: "String", Pattern: `"(\\"|[^"])*"`},
 		{Name: "Number", Pattern: `[-+]?(\d*\.)?\d+`},
@@ -23,14 +22,14 @@ var (
 		{Name: "Whitespace", Pattern: `[ \t]+`},
 	})
 
-	jsonParser = participle.MustBuild[Json](
+	jsonParser	= participle.MustBuild[Json](
 		participle.Lexer(jsonLexer),
 		participle.Unquote("String"),
 		participle.Elide("Whitespace", "EOL"),
 		participle.UseLookahead(2),
 	)
 
-	cli struct {
+	cli	struct {
 		File string `arg:"" type:"existingfile" help:"File to parse."`
 	}
 )
@@ -39,40 +38,40 @@ var (
 func Parse(data []byte) (*Json, error) {
 	json, err := jsonParser.ParseBytes("", data)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return json, nil
 }
 
 type Json struct {
-	Pos lexer.Position
+	Pos	lexer.Position
 
-	Object *Object `parser:"@@ |"`
-	Array  *Array  `parser:"@@ |"`
-	Number *string `parser:"@Number |"`
-	String *string `parser:"@String |"`
-	False  *string `parser:"@False |"`
-	True   *string `parser:"@True |"`
-	Null   *string `parser:"@Null"`
+	Object	*Object	`parser:"@@ |"`
+	Array	*Array	`parser:"@@ |"`
+	Number	*string	`parser:"@Number |"`
+	String	*string	`parser:"@String |"`
+	False	*string	`parser:"@False |"`
+	True	*string	`parser:"@True |"`
+	Null	*string	`parser:"@Null"`
 }
 
 type Object struct {
-	Pos lexer.Position
+	Pos	lexer.Position
 
-	Pairs []*Pair `parser:"'{' @@ (',' @@)* '}'"`
+	Pairs	[]*Pair	`parser:"'{' @@ (',' @@)* '}'"`
 }
 
 type Pair struct {
-	Pos lexer.Position
+	Pos	lexer.Position
 
-	Key   string `parser:"@String ':'"`
-	Value *Json  `parser:"@@"`
+	Key	string	`parser:"@String ':'"`
+	Value	*Json	`parser:"@@"`
 }
 
 type Array struct {
-	Pos lexer.Position
+	Pos	lexer.Position
 
-	Items []*Json `parser:"'[' @@ (',' @@)* ']'"`
+	Items	[]*Json	`parser:"'[' @@ (',' @@)* ']'"`
 }
 
 func main() {

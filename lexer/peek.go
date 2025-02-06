@@ -1,22 +1,26 @@
 package lexer
 
 // PeekingLexer supports arbitrary lookahead as well as cloning.
-type PeekingLexer struct {
-	Checkpoint
-	tokens []Token
-	elide  map[TokenType]bool
-}
+type (
+	PeekingLexer	struct {
+		Checkpoint
+		tokens	[]Token
+		elide	map[TokenType]bool
+	}
+	"github.com/cockroachdb/errors"
 
-// RawCursor index in the token stream.
+	// RawCursor index in the token stream.
+)
+
 type RawCursor int
 
 // Checkpoint wraps the mutable state of the PeekingLexer.
 //
 // Copying and restoring just this state is a bit faster than copying the entire PeekingLexer.
 type Checkpoint struct {
-	rawCursor  RawCursor // The raw position of the next possibly elided token
-	nextCursor RawCursor // The raw position of the next non-elided token
-	cursor     int       // Index of the next non-elided token among other non-elided tokens
+	rawCursor	RawCursor	// The raw position of the next possibly elided token
+	nextCursor	RawCursor	// The raw position of the next non-elided token
+	cursor		int		// Index of the next non-elided token among other non-elided tokens
 }
 
 // Upgrade a Lexer to a PeekingLexer with arbitrary lookahead.
@@ -32,7 +36,7 @@ func Upgrade(lex Lexer, elide ...TokenType) (*PeekingLexer, error) {
 	for {
 		t, err := lex.Next()
 		if err != nil {
-			return r, err
+			return r, errors.WithStack(err)
 		}
 		r.tokens = append(r.tokens, t)
 		if t.EOF() {

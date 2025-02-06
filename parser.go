@@ -6,31 +6,31 @@ import (
 	"io"
 	"reflect"
 	"strings"
-
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 type unionDef struct {
-	typ     reflect.Type
-	members []reflect.Type
+	typ	reflect.Type
+	members	[]reflect.Type
 }
 
 type customDef struct {
-	typ     reflect.Type
-	parseFn reflect.Value
+	typ	reflect.Type
+	parseFn	reflect.Value
 }
 
 type parserOptions struct {
-	lex                   lexer.Definition
-	rootType              reflect.Type
-	typeNodes             map[reflect.Type]node
-	useLookahead          int
-	caseInsensitive       map[string]bool
-	caseInsensitiveTokens map[lexer.TokenType]bool
-	mappers               []mapperByToken
-	unionDefs             []unionDef
-	customDefs            []customDef
-	elide                 []string
+	lex			lexer.Definition
+	rootType		reflect.Type
+	typeNodes		map[reflect.Type]node
+	useLookahead		int
+	caseInsensitive		map[string]bool
+	caseInsensitiveTokens	map[lexer.TokenType]bool
+	mappers			[]mapperByToken
+	unionDefs		[]unionDef
+	customDefs		[]customDef
+	elide			[]string
 }
 
 // A Parser for a particular grammar and lexer.
@@ -67,14 +67,14 @@ func Build[G any](options ...Option) (parser *Parser[G], err error) {
 	// Configure Parser[G] struct with defaults + options.
 	p := &Parser[G]{
 		parserOptions: parserOptions{
-			lex:             lexer.TextScannerLexer,
-			caseInsensitive: map[string]bool{},
-			useLookahead:    1,
+			lex:			lexer.TextScannerLexer,
+			caseInsensitive:	map[string]bool{},
+			useLookahead:		1,
 		},
 	}
 	for _, option := range options {
 		if err = option(&p.parserOptions); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -88,7 +88,7 @@ func Build[G any](options ...Option) (parser *Parser[G], err error) {
 				for _, symbol := range mapper.symbols {
 					if rn, ok := symbols[symbol]; !ok {
 						return nil, fmt.Errorf("mapper %#v uses unknown token %q", mapper, symbol)
-					} else { // nolint: golint
+					} else {	// nolint: golint
 						mappers[rn] = append(mappers[rn], mapper.mapper)
 					}
 				}
@@ -103,7 +103,7 @@ func Build[G any](options ...Option) (parser *Parser[G], err error) {
 			for _, m := range combined {
 				t, err = m(t)
 				if err != nil {
-					return t, err
+					return t, errors.WithStack(err)
 				}
 			}
 			return t, nil
@@ -112,10 +112,10 @@ func Build[G any](options ...Option) (parser *Parser[G], err error) {
 
 	context := newGeneratorContext(p.lex)
 	if err := context.addCustomDefs(p.customDefs); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if err := context.addUnionDefs(p.unionDefs); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var grammar G
@@ -126,10 +126,10 @@ func Build[G any](options ...Option) (parser *Parser[G], err error) {
 	p.rootType = v.Type()
 	rootNode, err := context.parseType(p.rootType)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if err := validate(rootNode); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	p.typeNodes = context.typeNodes
 	p.typeNodes[p.rootType] = rootNode
@@ -147,10 +147,10 @@ func (p *Parser[G]) Lexer() lexer.Definition {
 func (p *Parser[G]) Lex(filename string, r io.Reader) ([]lexer.Token, error) {
 	lex, err := p.lex.Lex(filename, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	tokens, err := lexer.ConsumeAll(lex)
-	return tokens, err
+	return tokens, errors.WithStack(err)
 }
 
 // ParseFromLexer into grammar v which must be of the same type as the grammar passed to
@@ -162,7 +162,7 @@ func (p *Parser[G]) ParseFromLexer(lex *lexer.PeekingLexer, options ...ParseOpti
 	rv := reflect.ValueOf(v)
 	parseNode, err := p.parseNodeFor(rv)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	ctx := newParseContext(lex, p.useLookahead, p.caseInsensitiveTokens)
 	defer func() { *lex = ctx.PeekingLexer }()
@@ -188,7 +188,7 @@ func (p *Parser[G]) setCaseInsensitiveTokens() {
 func (p *Parser[G]) parse(lex lexer.Lexer, options ...ParseOption) (v *G, err error) {
 	peeker, err := lexer.Upgrade(lex, p.getElidedTypes()...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return p.ParseFromLexer(peeker, options...)
 }
@@ -203,7 +203,7 @@ func (p *Parser[G]) Parse(filename string, r io.Reader, options ...ParseOption) 
 	}
 	lex, err := p.lex.Lex(filename, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return p.parse(lex, options...)
 }
@@ -220,7 +220,7 @@ func (p *Parser[G]) ParseString(filename string, s string, options ...ParseOptio
 		lex, err = p.lex.Lex(filename, strings.NewReader(s))
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return p.parse(lex, options...)
 }
@@ -237,7 +237,7 @@ func (p *Parser[G]) ParseBytes(filename string, b []byte, options ...ParseOption
 		lex, err = p.lex.Lex(filename, bytes.NewReader(b))
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return p.parse(lex, options...)
 }
@@ -245,7 +245,7 @@ func (p *Parser[G]) ParseBytes(filename string, b []byte, options ...ParseOption
 func (p *Parser[G]) parseOne(ctx *parseContext, parseNode node, rv reflect.Value) error {
 	err := p.parseInto(ctx, parseNode, rv)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	token := ctx.Peek()
 	if !token.EOF() && !ctx.allowTrailing {
@@ -263,7 +263,7 @@ func (p *Parser[G]) parseInto(ctx *parseContext, parseNode node, rv reflect.Valu
 		rv.Elem().Set(reflect.Indirect(pv[0]))
 	}
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if pv == nil {
 		token := ctx.Peek()

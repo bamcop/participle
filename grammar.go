@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"reflect"
 	"text/scanner"
-
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 type generatorContext struct {
 	lexer.Definition
-	typeNodes    map[reflect.Type]node
-	symbolsToIDs map[lexer.TokenType]string
+	typeNodes	map[reflect.Type]node
+	symbolsToIDs	map[lexer.TokenType]string
 }
 
 func newGeneratorContext(lex lexer.Definition) *generatorContext {
 	return &generatorContext{
-		Definition:   lex,
-		typeNodes:    map[reflect.Type]node{},
-		symbolsToIDs: lexer.SymbolsByRune(lex),
+		Definition:	lex,
+		typeNodes:	map[reflect.Type]node{},
+		symbolsToIDs:	lexer.SymbolsByRune(lex),
 	}
 }
 
@@ -29,8 +29,8 @@ func (g *generatorContext) addUnionDefs(defs []unionDef) error {
 			return fmt.Errorf("duplicate definition for interface or union type %s", def.typ)
 		}
 		unionNode := &union{
-			unionDef:    def,
-			disjunction: disjunction{nodes: make([]node, 0, len(def.members))},
+			unionDef:	def,
+			disjunction:	disjunction{nodes: make([]node, 0, len(def.members))},
 		}
 		g.typeNodes[def.typ], unionNodes[i] = unionNode, unionNode
 	}
@@ -39,7 +39,7 @@ func (g *generatorContext) addUnionDefs(defs []unionDef) error {
 		for _, memberType := range def.members {
 			memberNode, err := g.parseType(memberType)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			unionNode.disjunction.nodes = append(unionNode.disjunction.nodes, memberNode)
 		}
@@ -72,7 +72,7 @@ func (g *generatorContext) parseType(t reflect.Type) (_ node, returnedError erro
 	if reflect.PtrTo(t).Implements(parseableType) {
 		return &parseable{t}, nil
 	}
-	switch t.Kind() { // nolint: exhaustive
+	switch t.Kind() {	// nolint: exhaustive
 	case reflect.Slice, reflect.Ptr:
 		t = indirectType(t.Elem())
 		if t.Kind() != reflect.Struct {
@@ -83,17 +83,17 @@ func (g *generatorContext) parseType(t reflect.Type) (_ node, returnedError erro
 	case reflect.Struct:
 		slexer, err := lexStruct(t)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		out := newStrct(t)
-		g.typeNodes[t] = out // Ensure we avoid infinite recursion.
+		g.typeNodes[t] = out	// Ensure we avoid infinite recursion.
 		if slexer.NumField() == 0 {
 			return nil, fmt.Errorf("can not parse into empty struct %s", t)
 		}
 		defer decorate(&returnedError, func() string { return slexer.Field().Name })
 		e, err := g.parseDisjunction(slexer)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if e == nil {
 			return nil, fmt.Errorf("no grammar found in %s", t)
@@ -112,7 +112,7 @@ func (g *generatorContext) parseDisjunction(slexer *structLexer) (node, error) {
 	for {
 		n, err := g.parseSequence(slexer)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if n == nil {
 			return nil, fmt.Errorf("alternative expression %d cannot be empty", len(out.nodes)+1)
@@ -121,9 +121,9 @@ func (g *generatorContext) parseDisjunction(slexer *structLexer) (node, error) {
 		if token, _ := slexer.Peek(); token.Type != '|' {
 			break
 		}
-		_, err = slexer.Next() // |
+		_, err = slexer.Next()	// |
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	if len(out.nodes) == 1 {
@@ -138,13 +138,13 @@ func (g *generatorContext) parseSequence(slexer *structLexer) (node, error) {
 loop:
 	for {
 		if token, err := slexer.Peek(); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		} else if token.Type == lexer.EOF {
 			break loop
 		}
 		term, err := g.parseTerm(slexer, true)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if term == nil {
 			break loop
@@ -169,7 +169,7 @@ loop:
 func (g *generatorContext) parseTermNoModifiers(slexer *structLexer, allowUnknown bool) (node, error) {
 	t, err := slexer.Peek()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	switch t.Type {
 	case '@':
@@ -201,7 +201,7 @@ func (g *generatorContext) parseTermNoModifiers(slexer *structLexer, allowUnknow
 func (g *generatorContext) parseTerm(slexer *structLexer, allowUnknown bool) (node, error) {
 	out, err := g.parseTermNoModifiers(slexer, allowUnknown)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return g.parseModifier(slexer, out)
 }
@@ -211,7 +211,7 @@ func (g *generatorContext) parseModifier(slexer *structLexer, expr node) (node, 
 	out := &group{expr: expr}
 	t, err := slexer.Peek()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	switch t.Type {
 	case '!':
@@ -234,14 +234,14 @@ func (g *generatorContext) parseCapture(slexer *structLexer) (node, error) {
 	_, _ = slexer.Next()
 	token, err := slexer.Peek()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	field := slexer.Field()
 	if token.Type == '@' {
 		_, _ = slexer.Next()
 		n, err := g.parseType(field.Type)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return &capture{field, n}, nil
 	}
@@ -251,16 +251,16 @@ func (g *generatorContext) parseCapture(slexer *structLexer) (node, error) {
 	}
 	n, err := g.parseTermNoModifiers(slexer, false)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &capture{field, n}, nil
 }
 
 // A reference in the form <identifier> refers to a named token from the lexer.
-func (g *generatorContext) parseReference(slexer *structLexer) (node, error) { // nolint: interfacer
+func (g *generatorContext) parseReference(slexer *structLexer) (node, error) {	// nolint: interfacer
 	token, err := slexer.Next()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if token.Type != scanner.Ident {
 		return nil, fmt.Errorf("expected identifier but got %q", token)
@@ -274,15 +274,15 @@ func (g *generatorContext) parseReference(slexer *structLexer) (node, error) { /
 
 // [ <expression> ] optionally matches <expression>.
 func (g *generatorContext) parseOptional(slexer *structLexer) (node, error) {
-	_, _ = slexer.Next() // [
+	_, _ = slexer.Next()	// [
 	disj, err := g.parseDisjunction(slexer)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	n := &group{expr: disj, mode: groupMatchZeroOrOne}
 	next, err := slexer.Next()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if next.Type != ']' {
 		return nil, fmt.Errorf("expected ] but got %q", next)
@@ -292,15 +292,15 @@ func (g *generatorContext) parseOptional(slexer *structLexer) (node, error) {
 
 // { <expression> } matches 0 or more repititions of <expression>
 func (g *generatorContext) parseRepetition(slexer *structLexer) (node, error) {
-	_, _ = slexer.Next() // {
+	_, _ = slexer.Next()	// {
 	disj, err := g.parseDisjunction(slexer)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	n := &group{expr: disj, mode: groupMatchZeroOrMore}
 	next, err := slexer.Next()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if next.Type != '}' {
 		return nil, fmt.Errorf("expected } but got %q", next)
@@ -310,28 +310,28 @@ func (g *generatorContext) parseRepetition(slexer *structLexer) (node, error) {
 
 // ( <expression> ) groups a sub-expression
 func (g *generatorContext) parseGroup(slexer *structLexer) (node, error) {
-	_, _ = slexer.Next() // (
+	_, _ = slexer.Next()	// (
 	peek, err := slexer.Peek()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if peek.Type == '?' {
-		return g.subparseLookaheadGroup(slexer) // If there was an error peeking, code below will handle it
+		return g.subparseLookaheadGroup(slexer)	// If there was an error peeking, code below will handle it
 	}
 	expr, err := g.subparseGroup(slexer)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &group{expr: expr}, nil
 }
 
 // (?[!=] <expression> ) requires a grouped sub-expression either matches or doesn't match, without consuming it
 func (g *generatorContext) subparseLookaheadGroup(slexer *structLexer) (node, error) {
-	_, _ = slexer.Next() // ? - the opening ( was already consumed in parseGroup
+	_, _ = slexer.Next()	// ? - the opening ( was already consumed in parseGroup
 	var negative bool
 	next, err := slexer.Next()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	switch next.Type {
 	case '=':
@@ -343,7 +343,7 @@ func (g *generatorContext) subparseLookaheadGroup(slexer *structLexer) (node, er
 	}
 	expr, err := g.subparseGroup(slexer)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &lookaheadGroup{expr: expr, negative: negative}, nil
 }
@@ -352,11 +352,11 @@ func (g *generatorContext) subparseLookaheadGroup(slexer *structLexer) (node, er
 func (g *generatorContext) subparseGroup(slexer *structLexer) (node, error) {
 	disj, err := g.parseDisjunction(slexer)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	next, err := slexer.Next() // )
+	next, err := slexer.Next()	// )
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if next.Type != ')' {
 		return nil, fmt.Errorf("expected ) but got %q", next)
@@ -368,10 +368,10 @@ func (g *generatorContext) subparseGroup(slexer *structLexer) (node, error) {
 //
 // Accepts both the form !"some-literal" and !SomeNamedToken
 func (g *generatorContext) parseNegation(slexer *structLexer) (node, error) {
-	_, _ = slexer.Next() // advance the parser since we have '!' right now.
+	_, _ = slexer.Next()	// advance the parser since we have '!' right now.
 	next, err := g.parseTermNoModifiers(slexer, false)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &negation{next}, nil
 }
@@ -380,22 +380,22 @@ func (g *generatorContext) parseNegation(slexer *structLexer) (node, error) {
 //
 // Note that for this to match, the tokeniser must be able to produce this string. For example,
 // if the tokeniser only produces individual characters but the literal is "hello", or vice versa.
-func (g *generatorContext) parseLiteral(lex *structLexer) (node, error) { // nolint: interfacer
+func (g *generatorContext) parseLiteral(lex *structLexer) (node, error) {	// nolint: interfacer
 	token, err := lex.Next()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s := token.Value
 	t := lexer.TokenType(-1)
 	token, err = lex.Peek()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if token.Type == ':' {
 		_, _ = lex.Next()
 		token, err = lex.Next()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if token.Type != scanner.Ident {
 			return nil, fmt.Errorf("expected identifier for literal type constraint but got %q", token)

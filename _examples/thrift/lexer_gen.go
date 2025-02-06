@@ -6,9 +6,9 @@ import (
 	"regexp/syntax"
 	"strings"
 	"unicode/utf8"
-
 	"github.com/bamcop/participle/v2"
 	"github.com/bamcop/participle/v2/lexer"
+	"github.com/cockroachdb/errors"
 )
 
 var _ syntax.Op
@@ -19,25 +19,25 @@ type definitionImpl struct{}
 
 func (definitionImpl) Symbols() map[string]lexer.TokenType {
 	return map[string]lexer.TokenType{
-		"Comment":    -7,
-		"EOF":        -1,
-		"Ident":      -3,
-		"Number":     -2,
-		"Punct":      -6,
-		"String":     -4,
-		"Whitespace": -5,
+		"Comment":	-7,
+		"EOF":		-1,
+		"Ident":	-3,
+		"Number":	-2,
+		"Punct":	-6,
+		"String":	-4,
+		"Whitespace":	-5,
 	}
 }
 
 func (definitionImpl) LexString(filename string, s string) (lexer.Lexer, error) {
 	return &lexerImpl{
-		s: s,
+		s:	s,
 		pos: lexer.Position{
-			Filename: filename,
-			Line:     1,
-			Column:   1,
+			Filename:	filename,
+			Line:		1,
+			Column:		1,
 		},
-		states: []lexerState{{name: "Root"}},
+		states:	[]lexerState{{name: "Root"}},
 	}, nil
 }
 
@@ -49,21 +49,21 @@ func (d definitionImpl) Lex(filename string, r io.Reader) (lexer.Lexer, error) {
 	s := &strings.Builder{}
 	_, err := io.Copy(s, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return d.LexString(filename, s.String())
 }
 
 type lexerState struct {
-	name   string
-	groups []string
+	name	string
+	groups	[]string
 }
 
 type lexerImpl struct {
-	s      string
-	p      int
-	pos    lexer.Position
-	states []lexerState
+	s	string
+	p	int
+	pos	lexer.Position
+	states	[]lexerState
 }
 
 func (l *lexerImpl) Next() (lexer.Token, error) {
@@ -71,9 +71,9 @@ func (l *lexerImpl) Next() (lexer.Token, error) {
 		return lexer.EOFToken(l.pos), nil
 	}
 	var (
-		state  = l.states[len(l.states)-1]
-		groups []int
-		sym    lexer.TokenType
+		state	= l.states[len(l.states)-1]
+		groups	[]int
+		sym	lexer.TokenType
 	)
 	switch state.name {
 	case "Root":
@@ -109,9 +109,9 @@ func (l *lexerImpl) Next() (lexer.Token, error) {
 	l.p = groups[1]
 	l.pos.Advance(span)
 	return lexer.Token{
-		Type:  sym,
-		Value: span,
-		Pos:   pos,
+		Type:	sym,
+		Value:	span,
+		Pos:	pos,
 	}, nil
 }
 
@@ -218,8 +218,8 @@ func matchString(s string, p int) (groups [2]int) {
 			return -1
 		}
 		var (
-			rn rune
-			n  int
+			rn	rune
+			n	int
 		)
 		if s[p] < utf8.RuneSelf {
 			rn, n = rune(s[p]), 1
@@ -355,8 +355,8 @@ func matchComment(s string, p int) (groups [2]int) {
 	// (?-s:.) (AnyCharNotNL)
 	l1 := func(s string, p int) int {
 		var (
-			rn rune
-			n  int
+			rn	rune
+			n	int
 		)
 		if s[p] < utf8.RuneSelf {
 			rn, n = rune(s[p]), 1

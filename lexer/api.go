@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"io"
 	"strings"
 	"unicode/utf8"
@@ -84,7 +85,7 @@ func ConsumeAll(lexer Lexer) ([]Token, error) {
 	for {
 		token, err := lexer.Next()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		tokens = append(tokens, token)
 		if token.Type == EOF {
@@ -95,10 +96,10 @@ func ConsumeAll(lexer Lexer) ([]Token, error) {
 
 // Position of a token.
 type Position struct {
-	Filename string
-	Offset   int
-	Line     int
-	Column   int
+	Filename	string
+	Offset		int
+	Line		int
+	Column		int
 }
 
 // Advance the Position based on the number of characters and newlines in "span".
@@ -144,9 +145,9 @@ func (p Position) String() string {
 // A Token returned by a Lexer.
 type Token struct {
 	// Type of token. This is the value keyed by symbol as returned by Definition.Symbols().
-	Type  TokenType
-	Value string
-	Pos   Position
+	Type	TokenType
+	Value	string
+	Pos	Position
 }
 
 // EOF returns true if this Token is an EOF token.

@@ -5,51 +5,51 @@ import (
 	"strconv"
 	"strings"
 	"text/scanner"
-
 	"github.com/alecthomas/kong"
+	"github.com/alecthomas/repr"
 	"github.com/bamcop/participle/v2"
 	"github.com/bamcop/participle/v2/lexer"
-	"github.com/alecthomas/repr"
+	"github.com/cockroachdb/errors"
 )
 
 type operatorPrec struct{ Left, Right int }
 
 var operatorPrecs = map[string]operatorPrec{
-	"+": {1, 1},
-	"-": {1, 1},
-	"*": {3, 2},
-	"/": {5, 4},
-	"%": {7, 6},
+	"+":	{1, 1},
+	"-":	{1, 1},
+	"*":	{3, 2},
+	"/":	{5, 4},
+	"%":	{7, 6},
 }
 
 type (
-	Expr interface{ expr() }
+	Expr	interface{ expr() }
 
-	ExprIdent  struct{ Name string }
-	ExprString struct{ Value string }
-	ExprNumber struct{ Value float64 }
-	ExprParens struct{ Sub Expr }
+	ExprIdent	struct{ Name string }
+	ExprString	struct{ Value string }
+	ExprNumber	struct{ Value float64 }
+	ExprParens	struct{ Sub Expr }
 
-	ExprUnary struct {
-		Op  string
-		Sub Expr
+	ExprUnary	struct {
+		Op	string
+		Sub	Expr
 	}
 
-	ExprBinary struct {
-		Lhs Expr
-		Op  string
-		Rhs Expr
+	ExprBinary	struct {
+		Lhs	Expr
+		Op	string
+		Rhs	Expr
 	}
 )
 
-func (ExprIdent) expr()  {}
-func (ExprString) expr() {}
-func (ExprNumber) expr() {}
-func (ExprParens) expr() {}
-func (ExprUnary) expr()  {}
-func (ExprBinary) expr() {}
+func (ExprIdent) expr()		{}
+func (ExprString) expr()	{}
+func (ExprNumber) expr()	{}
+func (ExprParens) expr()	{}
+func (ExprUnary) expr()		{}
+func (ExprBinary) expr()	{}
 
-func parseExprAny(lex *lexer.PeekingLexer) (Expr, error) { return parseExprPrec(lex, 0) }
+func parseExprAny(lex *lexer.PeekingLexer) (Expr, error)	{ return parseExprPrec(lex, 0) }
 
 func parseExprAtom(lex *lexer.PeekingLexer) (Expr, error) {
 	switch peek := lex.Peek(); {
@@ -58,20 +58,20 @@ func parseExprAtom(lex *lexer.PeekingLexer) (Expr, error) {
 	case peek.Type == scanner.String:
 		val, err := strconv.Unquote(lex.Next().Value)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return ExprString{val}, nil
 	case peek.Type == scanner.Int || peek.Type == scanner.Float:
 		val, err := strconv.ParseFloat(lex.Next().Value, 64)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return ExprNumber{val}, nil
 	case peek.Value == "(":
 		_ = lex.Next()
 		inner, err := parseExprAny(lex)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if lex.Peek().Value != ")" {
 			return nil, fmt.Errorf("expected closing ')'")
@@ -89,13 +89,13 @@ func parseExprPrec(lex *lexer.PeekingLexer, minPrec int) (Expr, error) {
 		op := lex.Next().Value
 		atom, err := parseExprAtom(lex)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = ExprUnary{op, atom}
 	} else {
 		atom, err := parseExprAtom(lex)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = atom
 	}
@@ -109,7 +109,7 @@ func parseExprPrec(lex *lexer.PeekingLexer, minPrec int) (Expr, error) {
 		op := lex.Next().Value
 		rhs, err := parseExprPrec(lex, prec.Right)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		lhs = ExprBinary{lhs, op, rhs}
 	}
