@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/alecthomas/participle/v2"
+	"github.com/bamcop/participle/v2"
 )
 
 var cli struct {

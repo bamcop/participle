@@ -5,7 +5,7 @@ package conformance_test
 import (
 	"testing"
 
-	"github.com/alecthomas/participle/v2/lexer/internal/conformance"
+	"github.com/bamcop/participle/v2/lexer/internal/conformance"
 )
 
 // This should only be run by TestLexerConformanceGenerated.

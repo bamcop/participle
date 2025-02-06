@@ -9,7 +9,7 @@ import (
 
 	"github.com/alecthomas/repr"
 
-	"github.com/alecthomas/participle/v2/ebnf"
+	"github.com/bamcop/participle/v2/ebnf"
 )
 
 const (

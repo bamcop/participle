@@ -13,8 +13,8 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 func TestProductionCapture(t *testing.T) {

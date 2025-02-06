@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 type unionDef struct {

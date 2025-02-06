@@ -7,7 +7,7 @@ import (
 
 	require "github.com/alecthomas/assert/v2"
 	thriftparser "github.com/alecthomas/go-thrift/parser"
-	"github.com/alecthomas/participle/v2"
+	"github.com/bamcop/participle/v2"
 )
 
 var (

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 var _ syntax.Op

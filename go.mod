@@ -1,4 +1,4 @@
-module github.com/alecthomas/participle/v2
+module github.com/bamcop/participle/v2
 
 go 1.18
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	require "github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/participle/v2"
+	"github.com/bamcop/participle/v2"
 )
 
 func TestBuild_Errors_Negation(t *testing.T) {

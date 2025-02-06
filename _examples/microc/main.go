@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/alecthomas/repr"
 
-	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 // https://www.it.uu.se/katalog/aleji304/CompilersProject/uc.html

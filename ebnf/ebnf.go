@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/alecthomas/participle/v2"
+	"github.com/bamcop/participle/v2"
 )
 
 var parser = participle.MustBuild[EBNF]()

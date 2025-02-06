@@ -3,7 +3,7 @@ package participle
 import (
 	"fmt"
 
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 // Error represents an error while parsing.

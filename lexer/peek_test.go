@@ -5,7 +5,7 @@ import (
 
 	require "github.com/alecthomas/assert/v2"
 
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 type staticLexer struct {

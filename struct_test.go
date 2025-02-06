@@ -6,7 +6,7 @@ import (
 	"text/scanner"
 
 	require "github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 func TestStructLexerTokens(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/bamcop/participle/v2/lexer"
 )
 
 // MaxLookahead can be used with UseLookahead to get pseudo-infinite

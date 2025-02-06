@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/alecthomas/repr"
 
-	"github.com/alecthomas/participle/v2"
+	"github.com/bamcop/participle/v2"
 )
 
 type Generic struct {
